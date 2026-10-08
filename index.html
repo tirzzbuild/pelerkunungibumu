@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AI Photo Gallery</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #08090d;
+    color: #fff;
+    min-height: 100vh;
+}
+
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 18px 16px;
+    background: rgba(8, 9, 13, .92);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid #20232d;
+}
+
+.header h1 {
+    font-size: 22px;
+    margin-bottom: 5px;
+}
+
+.header p {
+    color: #858b99;
+    font-size: 13px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 18px;
+}
+
+.upload-box {
+    border: 1px dashed #444957;
+    border-radius: 18px;
+    padding: 25px;
+    text-align: center;
+    background: #0e1016;
+    margin-bottom: 22px;
+    transition: .2s;
+}
+
+.upload-box.active {
+    border-color: #6f7cff;
+    background: #121521;
+}
+
+.upload-title {
+    font-size: 17px;
+    font-weight: bold;
+    margin-bottom: 7px;
+}
+
+.upload-desc {
+    color: #818796;
+    font-size: 13px;
+    margin-bottom: 17px;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.upload-btn,
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 11px;
+    padding: 12px 18px;
+    background: #5c6cff;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.upload-btn:hover,
+.action-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+}
+
+.action-btn.danger {
+    background: #272a34;
+    color: #ff7777;
+}
+
+.action-btn.secondary {
+    background: #1d2029;
+    color: #dce0e9;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.count {
+    color: #9298a6;
+    font-size: 14px;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.actions button {
+    border: 0;
+    border-radius: 9px;
+    padding: 9px 13px;
+    cursor: pointer;
+    background: #1b1e27;
+    color: #dfe3ec;
+}
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.photo {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 13px;
+    background: #11131a;
+    cursor: pointer;
+}
+
+.photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .25s;
+}
+
+.photo:hover img {
+    transform: scale(1.04);
+}
+
+.photo-delete {
+    position: absolute;
+    right: 7px;
+    top: 7px;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,.7);
+    color: white;
+    cursor: pointer;
+    z-index: 2;
+    font-size: 17px;
+}
+
+.empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6f7481;
+}
+
+.empty-title {
+    color: #b7bbc5;
+    font-size: 17px;
+    margin-bottom: 7px;
+}
+
+/* Viewer */
+
+.viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    background: rgba(0,0,0,.96);
+}
+
+.viewer.show {
+    display: flex;
+    flex-direction: column;
+}
+
+.viewer-top {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(10,10,10,.85);
+}
+
+.viewer-title {
+    color: #d9dce4;
+    font-size: 13px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 55%;
+}
+
+.viewer-buttons {
+    display: flex;
+    gap: 7px;
+}
+
+.viewer-buttons button {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 9px;
+    background: #20232b;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.viewer-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    padding: 10px;
+    touch-action: none;
+}
+
+.viewer-content img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transform-origin: center center;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.viewer-bottom {
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #858a97;
+    font-size: 12px;
+    background: rgba(10,10,10,.85);
+}
+
+/* Loading */
+
+.loading {
+    position: fixed;
+    inset: 0;
+    background: #08090d;
+    z-index: 200;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.loading.hide {
+    display: none;
+}
+
+.loader {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #292d38;
+    border-top-color: #6b77ff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 12px;
+    }
+
+    .gallery {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .photo {
+        border-radius: 9px;
+    }
+
+    .upload-box {
+        padding: 20px 12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="loading" id="loading">
+    <div class="loader"></div>
+    <div>Memuat galeri...</div>
+</div>
+
+<header class="header">
+    <h1>AI Photo Gallery</h1>
+    <p>Simpan dan lihat foto dengan jelas di perangkat ini</p>
+</header>
+
+<main class="container">
+
+    <div class="upload-box" id="uploadBox">
+
+        <div class="upload-title">
+            Upload Foto
+        </div>
+
+        <div class="upload-desc">
+            Pilih satu atau banyak foto dari perangkat
+        </div>
+
+        <label class="upload-btn" for="fileInput">
+            Pilih Foto
+        </label>
+
+        <input
+            id="fileInput"
+            type="file"
+            accept="image/*"
+            multiple
+        >
+
+    </div>
+
+    <div class="toolbar">
+
+        <div class="count" id="count">
+            0 foto tersimpan
+        </div>
+
+        <div class="actions">
+
+            <button onclick="selectMore()">
+                Tambah Foto
+            </button>
+
+            <button onclick="clearAll()" class="danger">
+                Hapus Semua
+            </button>
+
+        </div>
+
+    </div>
+
+    <section class="gallery" id="gallery"></section>
+
+    <div class="empty" id="empty">
+
+        <div class="empty-title">
+            Belum ada foto
+        </div>
+
+        <div>
+            Foto yang disimpan akan tetap ada ketika web dibuka kembali.
+        </div>
+
+    </div>
+
+</main>
+
+<!-- PHOTO VIEWER -->
+
+<div class="viewer" id="viewer">
+
+    <div class="viewer-top">
+
+        <div class="viewer-title" id="viewerTitle">
+            Foto
+        </div>
+
+        <div class="viewer-buttons">
+
+            <button onclick="zoomOut()" title="Zoom keluar">
+                −
+            </button>
+
+            <button onclick="resetZoom()" title="Reset">
+                1:1
+            </button>
+
+            <button onclick="zoomIn()" title="Zoom masuk">
+                +
+            </button>
+
+            <button onclick="fullscreenImage()" title="Fullscreen">
+                ⛶
+            </button>
+
+            <button onclick="closeViewer()" title="Tutup">
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="viewer-content" id="viewerContent">
+
+        <img id="viewerImage" src="" alt="Preview">
+
+    </div>
+
+    <div class="viewer-bottom">
+        Geser untuk melihat foto saat diperbesar
+    </div>
+
+</div>
+
+<script>
+const DB_NAME = "AIGalleryDatabase";
+const STORE_NAME = "photos";
+
+let db;
+let currentPhoto = null;
+let zoom = 1;
+
+const fileInput = document.getElementById("fileInput");
+const gallery = document.getElementById("gallery");
+const empty = document.getElementById("empty");
+const count = document.getElementById("count");
+const loading = document.getElementById("loading");
+const uploadBox = document.getElementById("uploadBox");
+
+
+// ================================
+// DATABASE
+// ================================
+
+function openDatabase() {
+
+    return new Promise((resolve, reject) => {
+
+        const request = indexedDB.open(DB_NAME, 1);
+
+        request.onupgradeneeded = function(event) {
+
+            const database = event.target.result;
+
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+
+                database.createObjectStore(
+                    STORE_NAME,
+                    {
+                        keyPath: "id",
+                        autoIncrement: true
+                    }
+                );
+
+            }
+        };
+
+        request.onsuccess = function(event) {
+
+            db = event.target.result;
+            resolve(db);
+
+        };
+
+        request.onerror = function() {
+
+            reject(request.error);
+
+        };
+
+    });
+}
+
+
+// ================================
+// SAVE PHOTO
+// ================================
+
+function savePhoto(file) {
+
+    return new Promise((resolve, reject) => {
+
+        const transaction = db.transaction(
+            STORE_NAME,
+            "readwrite"
+        );
+
+        const store = transaction.objectStore(STORE_NAME);
+
+        const photo = {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            created: Date.now(),
+            blob: file
+        };
+
+        const request = store.add(photo);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+
+    });
+
+}
+
+
+// ================================
+// GET ALL PHOTOS
+// ================================
+
+function getPhotos() {
+
+    return new Promise((resolve, reject) => {
+
+        const transaction = db.transaction(
+            STORE_NAME,
+            "readonly"
+        );
+
+        const store = transaction.objectStore(STORE_NAME);
+
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+
+            resolve(request.result);
+
+        };
+
+        request.onerror = () => {
+
+            reject(request.error);
+
+        };
+
+    });
+
+}
+
+
+// ================================
+// DELETE PHOTO
+// ================================
+
+function deletePhoto(id) {
+
+    return new Promise((resolve, reject) => {
+
+        const transaction = db.transaction(
+            STORE_NAME,
+            "readwrite"
+        );
+
+        const store = transaction.objectStore(STORE_NAME);
+
+        const request = store.delete(id);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+
+    });
+
+}
+
+
+// ================================
+// DELETE ALL
+// ================================
+
+function deleteAllPhotos() {
+
+    return new Promise((resolve, reject) => {
+
+        const transaction = db.transaction(
+            STORE_NAME,
+            "readwrite"
+        );
+
+        const store = transaction.objectStore(STORE_NAME);
+
+        const request = store.clear();
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+
+    });
+
+}
+
+
+// ================================
+// RENDER
+// ================================
+
+async function renderGallery() {
+
+    const photos = await getPhotos();
+
+    gallery.innerHTML = "";
+
+    count.textContent =
+        photos.length +
+        (photos.length === 1 ? " foto tersimpan" : " foto tersimpan");
+
+    empty.style.display =
+        photos.length === 0 ? "block" : "none";
+
+
+    photos.sort((a, b) => b.created - a.created);
+
+
+    photos.forEach(photo => {
+
+        const item = document.createElement("div");
+
+        item.className = "photo";
+
+        const image = document.createElement("img");
+
+        const url = URL.createObjectURL(photo.blob);
+
+        image.src = url;
+
+        image.onload = () => {
+            URL.revokeObjectURL(url);
+        };
+
+
+        image.addEventListener("click", () => {
+
+            openViewer(photo);
+
+        });
+
+
+        const deleteButton =
+            document.createElement("button");
+
+        deleteButton.className = "photo-delete";
+
+        deleteButton.innerHTML = "×";
+
+        deleteButton.title = "Hapus foto";
+
+
+        deleteButton.addEventListener(
+            "click",
+            async event => {
+
+                event.stopPropagation();
+
+                const confirmDelete =
+                    confirm(
+                        "Hapus foto ini?"
+                    );
+
+                if (!confirmDelete) return;
+
+                await deletePhoto(photo.id);
+
+                await renderGallery();
+
+            }
+        );
+
+
+        item.appendChild(image);
+
+        item.appendChild(deleteButton);
+
+        gallery.appendChild(item);
+
+    });
+
+}
+
+
+// ================================
+// UPLOAD
+// ================================
+
+fileInput.addEventListener(
+    "change",
+    async function() {
+
+        const files = Array.from(this.files);
+
+        if (!files.length) return;
+
+
+        uploadBox.classList.add("active");
+
+
+        try {
+
+            for (const file of files) {
+
+                if (!file.type.startsWith("image/")) {
+                    continue;
+                }
+
+                await savePhoto(file);
+
+            }
+
+            await renderGallery();
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Foto gagal disimpan. Kemungkinan penyimpanan perangkat sudah penuh."
+            );
+
+        }
+
+
+        this.value = "";
+
+        uploadBox.classList.remove("active");
+
+    }
+);
+
+
+// ================================
+// DRAG & DROP
+// ================================
+
+uploadBox.addEventListener(
+    "dragover",
+    event => {
+
+        event.preventDefault();
+
+        uploadBox.classList.add("active");
+
+    }
+);
+
+
+uploadBox.addEventListener(
+    "dragleave",
+    () => {
+
+        uploadBox.classList.remove("active");
+
+    }
+);
+
+
+uploadBox.addEventListener(
+    "drop",
+    async event => {
+
+        event.preventDefault();
+
+        uploadBox.classList.remove("active");
+
+        const files =
+            Array.from(event.dataTransfer.files);
+
+        for (const file of files) {
+
+            if (!file.type.startsWith("image/")) {
+                continue;
+            }
+
+            await savePhoto(file);
+
+        }
+
+        await renderGallery();
+
+    }
+);
+
+
+// ================================
+// VIEWER
+// ================================
+
+function openViewer(photo) {
+
+    currentPhoto = photo;
+
+    zoom = 1;
+
+    const viewer =
+        document.getElementById("viewer");
+
+    const image =
+        document.getElementById("viewerImage");
+
+    const title =
+        document.getElementById("viewerTitle");
+
+    const url =
+        URL.createObjectURL(photo.blob);
+
+    image.src = url;
+
+    image.dataset.url = url;
+
+    image.style.transform =
+        "scale(1) translate(0px, 0px)";
+
+    title.textContent = photo.name;
+
+    viewer.classList.add("show");
+
+}
+
+
+function closeViewer() {
+
+    const viewer =
+        document.getElementById("viewer");
+
+    const image =
+        document.getElementById("viewerImage");
+
+    if (image.dataset.url) {
+
+        URL.revokeObjectURL(
+            image.dataset.url
+        );
+
+        image.dataset.url = "";
+
+    }
+
+    viewer.classList.remove("show");
+
+    currentPhoto = null;
+
+}
+
+
+// ================================
+// ZOOM
+// ================================
+
+function applyZoom() {
+
+    const image =
+        document.getElementById("viewerImage");
+
+    image.style.transform =
+        `scale(${zoom})`;
+
+}
+
+
+function zoomIn() {
+
+    zoom += .25;
+
+    if (zoom > 5) {
+        zoom = 5;
+    }
+
+    applyZoom();
+
+}
+
+
+function zoomOut() {
+
+    zoom -= .25;
+
+    if (zoom < .5) {
+        zoom = .5;
+    }
+
+    applyZoom();
+
+}
+
+
+function resetZoom() {
+
+    zoom = 1;
+
+    applyZoom();
+
+}
+
+
+// ================================
+// FULLSCREEN
+// ================================
+
+function fullscreenImage() {
+
+    const image =
+        document.getElementById("viewerImage");
+
+    if (image.requestFullscreen) {
+
+        image.requestFullscreen();
+
+    } else if (image.webkitRequestFullscreen) {
+
+        image.webkitRequestFullscreen();
+
+    }
+
+}
+
+
+// ================================
+// CLOSE WITH ESC
+// ================================
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (event.key === "Escape") {
+
+            closeViewer();
+
+        }
+
+        if (
+            event.key === "+" ||
+            event.key === "="
+        ) {
+
+            zoomIn();
+
+        }
+
+        if (event.key === "-") {
+
+            zoomOut();
+
+        }
+
+    }
+);
+
+
+// ================================
+// SWIPE / DRAG IMAGE
+// ================================
+
+let dragging = false;
+let startX = 0;
+let startY = 0;
+let posX = 0;
+let posY = 0;
+
+const viewerContent =
+    document.getElementById("viewerContent");
+
+const viewerImage =
+    document.getElementById("viewerImage");
+
+
+viewerContent.addEventListener(
+    "pointerdown",
+    event => {
+
+        if (zoom <= 1) return;
+
+        dragging = true;
+
+        startX = event.clientX - posX;
+        startY = event.clientY - posY;
+
+        viewerContent.setPointerCapture(
+            event.pointerId
+        );
+
+    }
+);
+
+
+viewerContent.addEventListener(
+    "pointermove",
+    event => {
+
+        if (!dragging) return;
+
+        posX = event.clientX - startX;
+        posY = event.clientY - startY;
+
+        viewerImage.style.transform =
+            `translate(${posX}px, ${posY}px) scale(${zoom})`;
+
+    }
+);
+
+
+viewerContent.addEventListener(
+    "pointerup",
+    () => {
+
+        dragging = false;
+
+    }
+);
+
+
+// Reset position ketika reset zoom
+
+const originalResetZoom = resetZoom;
+
+resetZoom = function() {
+
+    zoom = 1;
+
+    posX = 0;
+    posY = 0;
+
+    viewerImage.style.transform =
+        "translate(0px, 0px) scale(1)";
+
+};
+
+
+// ================================
+// BUTTON HELPERS
+// ================================
+
+function selectMore() {
+
+    fileInput.click();
+
+}
+
+
+async function clearAll() {
+
+    const photos = await getPhotos();
+
+    if (!photos.length) return;
+
+
+    const confirmDelete =
+        confirm(
+            "Yakin ingin menghapus SEMUA foto?"
+        );
+
+    if (!confirmDelete) return;
+
+
+    await deleteAllPhotos();
+
+    await renderGallery();
+
+}
+
+
+// ================================
+// START
+// ================================
+
+async function start() {
+
+    try {
+
+        await openDatabase();
+
+        await renderGallery();
+
+        loading.classList.add("hide");
+
+    } catch (error) {
+
+        console.error(error);
+
+        loading.classList.add("hide");
+
+        alert(
+            "Database penyimpanan tidak dapat dibuka di browser ini."
+        );
+
+    }
+
+}
+
+
+start();
+
+</script>
+
+</body>
+</html>
